@@ -1,4 +1,70 @@
-This is a downloadable reusable UI template that utilizes Nextjs and Tailwind for the front end framework while also being preinstalled with Metaplex Umi, Solana WalletAdapter, and Zustand global store for ease of use.
+# Metaplex Next.js Token Creator
+
+A modern web application for creating and managing Solana tokens using Metaplex, Next.js, and TailwindCSS.
+
+## Features
+
+- Create fungible tokens with custom metadata
+- Upload token images to decentralized storage
+- Set initial supply and token properties
+- Modern UI with dark/light mode support
+- Wallet integration with Solana wallet adapter
+
+## Setup
+
+1. Clone the repository:
+```bash
+git clone <your-repo-url>
+cd metaplex-nextjs-tailwind-template
+```
+
+2. Install dependencies:
+```bash
+npm install
+# or
+yarn install
+```
+
+3. Create a `.env.local` file in the root directory with the following variables:
+```env
+# Solana RPC URL (default: https://api.devnet.solana.com)
+NEXT_PUBLIC_RPC_URL=your_rpc_url_here
+
+# Fee address for minting (required)
+NEXT_PUBLIC_FEE_ADDRESS=your_fee_wallet_address_here
+
+# Fee amount in SOL (default: 0.005)
+NEXT_PUBLIC_FEE_AMOUNT=0.005
+```
+
+4. Run the development server:
+```bash
+npm run dev
+# or
+yarn dev
+```
+
+5. Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+## Environment Variables
+
+- `NEXT_PUBLIC_RPC_URL`: The Solana RPC URL to use for blockchain interactions. Defaults to Devnet if not specified.
+- `NEXT_PUBLIC_FEE_ADDRESS`: The wallet address where minting fees will be sent.
+- `NEXT_PUBLIC_FEE_AMOUNT`: The amount in SOL to charge as a fee for minting (default: 0.005 SOL).
+
+## Important Notes
+
+- Make sure to replace the fee address with your actual wallet address in the `.env.local` file.
+- The default RPC URL points to Devnet. For mainnet deployment, update the RPC URL accordingly.
+- Ensure your wallet has enough SOL to cover transaction fees and storage costs.
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
 
 
 ![WebUI Preview](/metaplex-next-js-template.png)

@@ -2,14 +2,16 @@ import {
   Signer,
   Umi,
   createNoopSigner,
-  createNullSigner,
   publicKey,
   signerIdentity,
 } from "@metaplex-foundation/umi";
 import { createUmi } from "@metaplex-foundation/umi-bundle-defaults";
 import { createSignerFromWalletAdapter } from "@metaplex-foundation/umi-signer-wallet-adapters";
+import { irysUploader } from "@metaplex-foundation/umi-uploader-irys";
 import { WalletAdapter } from "@solana/wallet-adapter-base";
 import { create } from "zustand";
+import { mplTokenMetadata } from "@metaplex-foundation/mpl-token-metadata";
+import { mplToolbox } from "@metaplex-foundation/mpl-toolbox";
 
 interface UmiState {
   umi: Umi;
@@ -17,13 +19,16 @@ interface UmiState {
   updateSigner: (signer: WalletAdapter) => void;
 }
 
+// Get environment variables
+const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || "https://api.devnet.solana.com";
+const FEE_ADDRESS = process.env.NEXT_PUBLIC_FEE_ADDRESS || "11111111111111111111111111111111";
+
 const useUmiStore = create<UmiState>()((set, get) => ({
-  // Replace URI with either hardcode, a const variable, or .env value
-  umi: createUmi("http://api.devnet.solana.com").use(
-    signerIdentity(
-      createNoopSigner(publicKey("11111111111111111111111111111111"))
-    )
-  ),
+  umi: createUmi(RPC_URL)
+    .use(signerIdentity(createNoopSigner(publicKey(FEE_ADDRESS))))
+    .use(irysUploader())
+    .use(mplTokenMetadata())
+    .use(mplToolbox()),
   signer: undefined,
   updateSigner: (signer) => {
     const currentSigner = get().signer;
@@ -33,6 +38,8 @@ const useUmiStore = create<UmiState>()((set, get) => ({
       !currentSigner ||
       currentSigner.publicKey.toString() !== newSigner.publicKey.toString()
     ) {
+      const umi = get().umi;
+      umi.use(signerIdentity(newSigner));
       set(() => ({ signer: newSigner }));
     }
   },
