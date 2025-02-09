@@ -1,5 +1,5 @@
 "use client"
-import { useState } from 'react';
+import { useState ,useRef} from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import Image from 'next/image';
 import { Switch } from '@headlessui/react';
@@ -25,6 +25,7 @@ import {
   findAssociatedTokenPda, 
   createMintWithAssociatedToken,
 } from '@metaplex-foundation/mpl-toolbox';
+import Link from 'next/link';
 
 // Environment variables
 const FEE_ADDRESS = process.env.NEXT_PUBLIC_FEE_ADDRESS || "11111111111111111111111111111111";
@@ -88,6 +89,7 @@ export default function MintForm() {
   const MAX_RETRIES = 3;
   const [tokenData, setTokenData] = useState<TokenData | null>(null);
   const [tokenAccountAddress, setTokenAccountAddress] = useState<string>('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Add retry delay utility
   const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -247,12 +249,14 @@ export default function MintForm() {
           updateProgress('uploading', 'Creating mint and token account...', 70);
           const mintAmount = BigInt(Number(initialSupply) * Math.pow(10, decimalValue));
           
-          // Create mint and token account
+          // Create mint and token account with proper authorities
           await createMintWithAssociatedToken(umi, {
             mint: mintKeypair,
             owner: userPublicKey,
             amount: mintAmount,
             decimals: decimalValue,
+            mintAuthority: revokeMintAuthority ? undefined : umi.identity.publicKey,
+            freezeAuthority: revokeFreezeAuthority ? undefined : umi.identity.publicKey,
           }).sendAndConfirm(umi);
 
           // Then create the fungible token metadata
@@ -277,28 +281,6 @@ export default function MintForm() {
             owner: userPublicKey,
           });
           setTokenAccountAddress(tokenAccount.toString());
-
-          // If requested, revoke mint authority
-          if (revokeMintAuthority) {
-            updateProgress('uploading', 'Revoking mint authority...', 90);
-            // Implement mint authority revocation
-            await transferV1(umi, {
-              mint: mintKeypair.publicKey,
-              authority: umi.identity,
-              newAuthority: none(),
-            }).sendAndConfirm(umi);
-          }
-
-          // If requested, revoke freeze authority
-          if (revokeFreezeAuthority) {
-            updateProgress('uploading', 'Revoking freeze authority...', 95);
-            // Implement freeze authority revocation
-            await transferV1(umi, {
-              mint: mintKeypair.publicKey,
-              authority: umi.identity,
-              newAuthority: none(),
-            }).sendAndConfirm(umi);
-          }
 
           // Set the token data for display
           setTokenData({
@@ -360,6 +342,14 @@ export default function MintForm() {
         )}
       </div>
     );
+  };
+
+  const handleHomeClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
   };
 
   return (
@@ -446,53 +436,43 @@ export default function MintForm() {
 
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">Token Logo</label>
-              <div className="w-full flex justify-center px-6 pt-5 pb-6 border-2 border-[#7C3AED]/20 border-dashed rounded-xl bg-black/20 backdrop-blur-xl hover:border-[#7C3AED]/50 transition-colors">
-                <div className="space-y-2 text-center">
-                  {imagePreview ? (
-                    <div className="relative w-24 h-24 mx-auto">
-                      <Image
-                        src={imagePreview}
-                        alt="Token preview"
-                        fill
-                        className="rounded-full object-cover ring-4 ring-[#7C3AED]/20"
-                      />
-                    </div>
-                  ) : (
-                    <>
-                      <svg
-                        className="mx-auto h-12 w-12 text-gray-400"
-                        stroke="currentColor"
-                        fill="none"
-                        viewBox="0 0 48 48"
-                        aria-hidden="true"
-                      >
-                        <path
-                          d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                          strokeWidth={2}
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
+              <div className="flex flex-col items-center justify-center">
+                <div className="text-center">
+                  <div className="flex flex-col items-center justify-center">
+                    <div 
+                      className="w-12 h-12 rounded-full bg-[#7C3AED] flex items-center justify-center cursor-pointer hover:bg-[#6D28D9] transition-colors"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                       </svg>
-                      <div className="flex text-sm text-gray-400">
-                        <label
-                          htmlFor="file-upload"
-                          className="relative cursor-pointer rounded-md font-medium text-purple-400 hover:text-purple-300"
-                        >
-                          <span>Click to upload logo</span>
-                          <input
-                            id="file-upload"
-                            name="file-upload"
-                            type="file"
-                            className="sr-only"
-                            onChange={handleImageChange}
-                            accept="image/*"
-                          />
-                        </label>
-                      </div>
-                      <p className="text-xs text-gray-500">(recommended size: 200x200)</p>
-                    </>
-                  )}
+                    </div>
+                    <p className="text-purple-500 mt-2 cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                      Click to upload logo
+                    </p>
+                    <p className="text-gray-500 text-sm mt-1">
+                      (recommended size: 200×200)
+                    </p>
+                  </div>
                 </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="sr-only"
+                  onChange={handleImageChange}
+                  accept="image/*"
+                />
+                {imagePreview && (
+                  <div className="mt-4">
+                    <Image
+                      src={imagePreview}
+                      alt="Token logo preview"
+                      width={200}
+                      height={200}
+                      className="rounded-lg object-cover"
+                    />
+                  </div>
+                )}
               </div>
             </div>
           </div>
