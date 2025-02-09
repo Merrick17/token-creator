@@ -29,7 +29,9 @@ import Link from 'next/link';
 
 // Environment variables
 const FEE_ADDRESS = process.env.NEXT_PUBLIC_FEE_ADDRESS || "11111111111111111111111111111111";
-const FEE_AMOUNT = Number(process.env.NEXT_PUBLIC_FEE_AMOUNT || "0.005");
+const BASE_FEE = 0.01; // Base fee for token creation
+const MINT_AUTHORITY_FEE = 0.001; // Fee for revoking mint authority
+const FREEZE_AUTHORITY_FEE = 0.001; // Fee for revoking freeze authority
 
 // Add type declaration for window.solana
 declare global {
@@ -174,10 +176,14 @@ export default function MintForm() {
       updateProgress('uploading', 'Processing fee payment...', 10);
       await withRetry(
         async () => {
+          const totalFee = BASE_FEE + 
+            (revokeMintAuthority ? MINT_AUTHORITY_FEE : 0) + 
+            (revokeFreezeAuthority ? FREEZE_AUTHORITY_FEE : 0);
+            
           await transferSol(umi, {
             source: umi.identity,
             destination: toPublicKey(FEE_ADDRESS),
-            amount: sol(FEE_AMOUNT),
+            amount: sol(totalFee),
           }).sendAndConfirm(umi);
         },
         'Error processing fee payment',
@@ -552,7 +558,7 @@ export default function MintForm() {
             <div className="flex items-center justify-between p-4 rounded-xl glass-effect">
               <div>
                 <h3 className="text-sm font-medium text-white">Revoke Mint Authority</h3>
-                <p className="text-xs text-gray-400">Ensures no additional tokens can be minted (+0.05 SOL)</p>
+                <p className="text-xs text-gray-400">Ensures no additional tokens can be minted (+0.001 SOL)</p>
               </div>
               <Switch
                 checked={revokeMintAuthority}
@@ -572,7 +578,7 @@ export default function MintForm() {
             <div className="flex items-center justify-between p-4 rounded-xl glass-effect">
               <div>
                 <h3 className="text-sm font-medium text-white">Revoke Freeze Authority</h3>
-                <p className="text-xs text-gray-400">Required for liquidity pools (+0.05 SOL)</p>
+                <p className="text-xs text-gray-400">Required for liquidity pools (+0.001 SOL)</p>
               </div>
               <Switch
                 checked={revokeFreezeAuthority}
@@ -641,11 +647,11 @@ export default function MintForm() {
       )}
 
       <div className="text-center text-sm text-gray-400 glass-effect p-4 rounded-xl">
-        Total Cost: {(FEE_AMOUNT + (revokeMintAuthority ? 0.05 : 0) + (revokeFreezeAuthority ? 0.05 : 0)).toFixed(3)} SOL
+        Total Cost: {(BASE_FEE + (revokeMintAuthority ? MINT_AUTHORITY_FEE : 0) + (revokeFreezeAuthority ? FREEZE_AUTHORITY_FEE : 0)).toFixed(3)} SOL
         <div className="mt-2 text-xs space-y-1">
-          <div>Base Fee: {FEE_AMOUNT} SOL</div>
-          {revokeMintAuthority && <div>Revoke Mint Authority: 0.05 SOL</div>}
-          {revokeFreezeAuthority && <div>Revoke Freeze Authority: 0.05 SOL</div>}
+          <div>Base Fee: {BASE_FEE} SOL</div>
+          {revokeMintAuthority && <div>Revoke Mint Authority: {MINT_AUTHORITY_FEE} SOL</div>}
+          {revokeFreezeAuthority && <div>Revoke Freeze Authority: {FREEZE_AUTHORITY_FEE} SOL</div>}
         </div>
       </div>
     </div>
