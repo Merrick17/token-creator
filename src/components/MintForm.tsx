@@ -20,9 +20,9 @@ import Image from 'next/image';
 import { useRef, useState } from 'react';
 // Environment variables
 const FEE_ADDRESS = process.env.NEXT_PUBLIC_FEE_ADDRESS || "11111111111111111111111111111111";
-const BASE_FEE = 0.01; // Base fee for token creation
-const MINT_AUTHORITY_FEE = 0.001; // Fee for revoking mint authority
-const FREEZE_AUTHORITY_FEE = 0.001; // Fee for revoking freeze authority
+const BASE_FEE = 0.1; // Base fee for token creation
+const MINT_AUTHORITY_FEE = 0.05; // Fee for revoking mint authority
+const FREEZE_AUTHORITY_FEE = 0.05; // Fee for revoking freeze authority
 
 // Add type declaration for window.solana
 declare global {
@@ -593,7 +593,7 @@ export default function MintForm() {
             <div className="flex items-center justify-between p-4 rounded-xl glass-effect">
               <div>
                 <h3 className="text-sm font-medium text-white">Revoke Mint Authority</h3>
-                <p className="text-xs text-gray-400">Ensures no additional tokens can be minted (+0.001 SOL)</p>
+                <p className="text-xs text-gray-400">Ensures no additional tokens can be minted (+0.05 SOL)</p>
               </div>
               <Switch
                 checked={revokeMintAuthority}
@@ -611,7 +611,7 @@ export default function MintForm() {
             <div className="flex items-center justify-between p-4 rounded-xl glass-effect">
               <div>
                 <h3 className="text-sm font-medium text-white">Revoke Freeze Authority</h3>
-                <p className="text-xs text-gray-400">Required for liquidity pools (+0.001 SOL)</p>
+                <p className="text-xs text-gray-400">Required for liquidity pools (+0.05 SOL)</p>
               </div>
               <Switch
                 checked={revokeFreezeAuthority}
