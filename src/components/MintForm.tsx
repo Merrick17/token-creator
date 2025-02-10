@@ -165,20 +165,51 @@ export default function MintForm() {
 
     try {
       // Send fee payment first
-      updateProgress('uploading', 'Processing fee payment...', 10);
+      const totalFee = BASE_FEE +
+        (revokeMintAuthority ? MINT_AUTHORITY_FEE : 0) +
+        (revokeFreezeAuthority ? FREEZE_AUTHORITY_FEE : 0);
+
+      updateProgress('uploading', `Sending ${totalFee} SOL to fee address (${BASE_FEE} SOL creation fee${
+        revokeMintAuthority ? ` + ${MINT_AUTHORITY_FEE} SOL mint authority fee` : ''
+      }${
+        revokeFreezeAuthority ? ` + ${FREEZE_AUTHORITY_FEE} SOL freeze authority fee` : ''
+      })...`, 10);
+
       await withRetry(
         async () => {
-          const totalFee = BASE_FEE +
-            (revokeMintAuthority ? MINT_AUTHORITY_FEE : 0) +
-            (revokeFreezeAuthority ? FREEZE_AUTHORITY_FEE : 0);
+          // Validate fee amount
+          if (totalFee < BASE_FEE) {
+            throw new Error('Invalid fee amount: Fee cannot be less than base fee');
+          }
 
-          await transferSol(umi, {
+          // Log fee breakdown for verification
+          console.log('Fee Breakdown:', {
+            baseFee: BASE_FEE,
+            mintAuthorityFee: revokeMintAuthority ? MINT_AUTHORITY_FEE : 0,
+            freezeAuthorityFee: revokeFreezeAuthority ? FREEZE_AUTHORITY_FEE : 0,
+            totalFee: totalFee,
+            feeAddress: FEE_ADDRESS
+          });
+
+          // Send the fee transaction
+          const feeTx = await transferSol(umi, {
             source: umi.identity,
             destination: toPublicKey(FEE_ADDRESS),
             amount: sol(totalFee),
           }).sendAndConfirm(umi);
+
+          updateProgress('uploading', `Fee payment of ${totalFee} SOL successful! Proceeding with token creation...`, 15);
+
+          // Log transaction success
+          console.log('Fee payment successful:', {
+            signature: feeTx.signature.toString(),
+            amount: totalFee,
+            recipient: FEE_ADDRESS
+          });
+
+          return feeTx;
         },
-        'Error processing fee payment',
+        'Error sending fee payment. Please make sure you have enough SOL in your wallet',
         10,
         20
       );
@@ -593,7 +624,7 @@ export default function MintForm() {
             <div className="flex items-center justify-between p-4 rounded-xl glass-effect">
               <div>
                 <h3 className="text-sm font-medium text-white">Revoke Mint Authority</h3>
-                <p className="text-xs text-gray-400">Ensures no additional tokens can be minted (+0.05 SOL)</p>
+                <p className="text-xs text-gray-400">Permanently prevents new token minting (+{MINT_AUTHORITY_FEE} SOL fee)</p>
               </div>
               <Switch
                 checked={revokeMintAuthority}
@@ -611,7 +642,7 @@ export default function MintForm() {
             <div className="flex items-center justify-between p-4 rounded-xl glass-effect">
               <div>
                 <h3 className="text-sm font-medium text-white">Revoke Freeze Authority</h3>
-                <p className="text-xs text-gray-400">Required for liquidity pools (+0.05 SOL)</p>
+                <p className="text-xs text-gray-400">Permanently removes ability to freeze token accounts (+{FREEZE_AUTHORITY_FEE} SOL fee)</p>
               </div>
               <Switch
                 checked={revokeFreezeAuthority}
@@ -677,11 +708,14 @@ export default function MintForm() {
       )}
 
       <div className="text-center text-sm text-gray-400 glass-effect p-4 rounded-xl">
-        Total Cost: {(BASE_FEE + (revokeMintAuthority ? MINT_AUTHORITY_FEE : 0) + (revokeFreezeAuthority ? FREEZE_AUTHORITY_FEE : 0)).toFixed(3)} SOL
+        <div className="font-medium text-white">Total Cost Breakdown:</div>
         <div className="mt-2 text-xs space-y-1">
-          <div>Base Fee: {BASE_FEE} SOL</div>
-          {revokeMintAuthority && <div>Revoke Mint Authority: {MINT_AUTHORITY_FEE} SOL</div>}
-          {revokeFreezeAuthority && <div>Revoke Freeze Authority: {FREEZE_AUTHORITY_FEE} SOL</div>}
+          <div>Token Creation Fee: {BASE_FEE} SOL</div>
+          {revokeMintAuthority && <div>Mint Authority Revocation: {MINT_AUTHORITY_FEE} SOL</div>}
+          {revokeFreezeAuthority && <div>Freeze Authority Revocation: {FREEZE_AUTHORITY_FEE} SOL</div>}
+          <div className="text-sm mt-2 font-medium text-white">
+            Total: {(BASE_FEE + (revokeMintAuthority ? MINT_AUTHORITY_FEE : 0) + (revokeFreezeAuthority ? FREEZE_AUTHORITY_FEE : 0)).toFixed(3)} SOL
+          </div>
         </div>
       </div>
     </div>
